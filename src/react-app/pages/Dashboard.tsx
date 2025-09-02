@@ -1,36 +1,28 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@getmocha/users-service/react';
 import { Filter, TrendingUp, TrendingDown, Wallet, DollarSign, Target } from 'lucide-react';
 import ExpenseGraphs from '@/react-app/components/ExpenseGraphs';
 import AIInsights from '@/react-app/components/AIInsights';
 import Navigation from '@/react-app/components/Navigation';
-import AuthButton from '@/react-app/components/AuthButton';
-import LoginPrompt from '@/react-app/components/LoginPrompt';
 import { Expense, Income } from '@/shared/types';
 
-type DateFilter = 'this_month' | 'last_month' | 'this_year' | 'custom';
+type DateFilter = 'this_month' | 'last_month' | 'this_year' | 'all';
 
 export default function Dashboard() {
-  const { user, isPending } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [income, setIncome] = useState<Income[]>([]);
   const [dateFilter, setDateFilter] = useState<DateFilter>('this_month');
-  const [customDateRange, setCustomDateRange] = useState({
-    start: '',
-    end: ''
-  });
+  const [refreshInsights, setRefreshInsights] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user, dateFilter, customDateRange]);
+    fetchData();
+    setRefreshInsights(prev => !prev);
+  }, [dateFilter]);
 
   const fetchData = async () => {
     try {
       const [expensesRes, incomeRes] = await Promise.all([
-        fetch(`/api/expenses?${getDateParams()}`),
-        fetch(`/api/income?${getDateParams()}`)
+        fetch(`/api/expenses?filter=${dateFilter}`),
+        fetch(`/api/income?filter=${dateFilter}`)
       ]);
       
       const expensesData = await expensesRes.json();
@@ -43,19 +35,6 @@ export default function Dashboard() {
     }
   };
 
-  const getDateParams = () => {
-    const params = new URLSearchParams();
-    
-    if (dateFilter === 'custom' && customDateRange.start && customDateRange.end) {
-      params.append('start_date', customDateRange.start);
-      params.append('end_date', customDateRange.end);
-    } else {
-      params.append('filter', dateFilter);
-    }
-    
-    return params.toString();
-  };
-
   const getDateLabel = () => {
     switch (dateFilter) {
       case 'this_month':
@@ -64,28 +43,12 @@ export default function Dashboard() {
         return 'Last Month';
       case 'this_year':
         return 'This Year';
-      case 'custom':
-        return customDateRange.start && customDateRange.end 
-          ? `${customDateRange.start} to ${customDateRange.end}`
-          : 'Custom Range';
+      case 'all':
+        return 'All Time';
       default:
         return 'This Month';
     }
   };
-
-  if (isPending) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 paper-texture flex items-center justify-center">
-        <div className="animate-pulse">
-          <div className="w-32 h-32 bg-gray-200 rounded-2xl"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <LoginPrompt />;
-  }
 
   // Calculate stats
   const totalIncome = income.reduce((sum, item) => sum + item.amount, 0);
@@ -113,7 +76,6 @@ export default function Dashboard() {
             
             <div className="flex items-center gap-4">
               <Navigation />
-              <AuthButton />
             </div>
           </div>
         </div>
@@ -129,7 +91,7 @@ export default function Dashboard() {
             </div>
             
             <div className="flex flex-wrap items-center gap-2">
-              {(['this_month', 'last_month', 'this_year', 'custom'] as const).map((filter) => (
+              {(['this_month', 'last_month', 'this_year', 'all'] as const).map((filter) => (
                 <button
                   key={filter}
                   onClick={() => setDateFilter(filter)}
@@ -139,31 +101,10 @@ export default function Dashboard() {
                       : 'bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  {filter === 'this_month' && 'This Month'}
-                  {filter === 'last_month' && 'Last Month'}
-                  {filter === 'this_year' && 'This Year'}
-                  {filter === 'custom' && 'Custom'}
+                  {filter.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </button>
               ))}
             </div>
-            
-            {dateFilter === 'custom' && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={customDateRange.start}
-                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                />
-                <span className="text-gray-500">to</span>
-                <input
-                  type="date"
-                  value={customDateRange.end}
-                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                />
-              </div>
-            )}
           </div>
         </div>
 
@@ -241,7 +182,7 @@ export default function Dashboard() {
         {/* Charts and Insights */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <ExpenseGraphs expenses={expenses} />
-          <AIInsights refresh={false} />
+          <AIInsights refresh={refreshInsights} />
         </div>
       </div>
     </div>
