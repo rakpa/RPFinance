@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "src/react-app/**": {
-      "runtime": "@vercel/static"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
