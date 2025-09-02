@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@getmocha/users-service/react';
 import { Wallet, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import ExpenseForm from '@/react-app/components/ExpenseForm';
 import ExpenseList from '@/react-app/components/ExpenseList';
 import IncomeForm from '@/react-app/components/IncomeForm';
 import IncomeList from '@/react-app/components/IncomeList';
 import Navigation from '@/react-app/components/Navigation';
-import AuthButton from '@/react-app/components/AuthButton';
-import LoginPrompt from '@/react-app/components/LoginPrompt';
 import { Expense, CreateExpense, Income, CreateIncome } from '@/shared/types';
 
 export default function Home() {
-  const { user, isPending } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [income, setIncome] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,25 +36,8 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
-
-  // Show login prompt if user is not authenticated
-  if (isPending) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 paper-texture flex items-center justify-center">
-        <div className="animate-pulse">
-          <div className="w-32 h-32 bg-gray-200 rounded-2xl"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <LoginPrompt />;
-  }
+    fetchData();
+  }, []);
 
   // Add expense
   const handleAddExpense = async (expenseData: CreateExpense) => {
@@ -157,7 +136,6 @@ export default function Home() {
             
             <div className="flex items-center gap-4">
               <Navigation />
-              <AuthButton />
             </div>
           </div>
         </div>
